@@ -14,7 +14,7 @@ const fromApp = e => win && !win.isDestroyed() && e.sender === win.webContents;
 const fromIsland = e => /mascot\.html/.test(e.senderFrame?.url || '');
 const faceWanted = on => island()?.webContents.executeJavaScript(`window.__twocodeFaceForSettings = ${on ? 'true' : 'false'}`).catch(() => {});
 
-let theme = 'dark', appLang = 'nl';
+let theme = 'dark', appLang = 'en';
 const lang = () => appLang;
 const TABS = ['home', 'connect', 'apps', 'news', 'karakter', 'wardrobe', 'general', 'ai'];
 function open(tab) {

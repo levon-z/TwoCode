@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
 <title>TwoCode Instellingen</title>
 <!--
@@ -379,7 +379,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const icon = (name, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24"><use href="#i-${name}"/></svg>`;
 const TABS = ['home', 'connect', 'ai', 'apps', 'karakter', 'wardrobe', 'general', 'news'];
 const asked = new URLSearchParams(location.search).get('tab');
-let tab = TABS.includes(asked) ? asked : 'home', lang = 'nl', info = {}, lastHtml = '', busy = false;
+let tab = TABS.includes(asked) ? asked : 'home', lang = 'en', info = {}, lastHtml = '', busy = false;
 
 const T = {
   nl: { secApp: 'TwoCode', secRobo: 'Robo', secSettings: 'Instellingen', home: 'Home', connect: 'Verbindingen',

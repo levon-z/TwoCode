@@ -21,6 +21,16 @@ let quitting = false;
 const pending = new Map();
 const listeners = new Set();
 
+function providerText(english, dutch) {
+  return app.twocodeLanguage === 'nl' ? dutch : english;
+}
+
+function loginCancelledError() {
+  return new Error(
+    providerText('ChatGPT login was cancelled.', 'ChatGPT-login is geannuleerd.')
+  );
+}
+
 const folder = () =>
   path.join(app.getPath('userData'), 'chatgpt-runtime');
 
@@ -254,7 +264,10 @@ function request(method, params = {}, timeout = 25000) {
 
       reject(
         new Error(
-          'ChatGPT reageerde niet op tijd. Probeer opnieuw.'
+          providerText(
+            `Codex timed out waiting for ${method} after ${Math.ceil(timeout / 1000)} seconds. Try again.`,
+            `ChatGPT wachtte ${Math.ceil(timeout / 1000)} seconden op ${method}. Probeer opnieuw.`
+          )
         )
       );
     }, timeout);
@@ -271,7 +284,10 @@ function request(method, params = {}, timeout = 25000) {
 
         reject(
           new Error(
-            'Het verzoek kon niet naar ChatGPT worden gestuurd.'
+            providerText(
+              `The ${method} request could not be sent to Codex.`,
+              `Het verzoek ${method} kon niet naar ChatGPT worden gestuurd.`
+            )
           )
         );
       }
@@ -312,7 +328,10 @@ function waitFor(method, predicate, timeout) {
 
       reject(
         new Error(
-          'De ChatGPT-verbinding duurde te lang. Probeer opnieuw.'
+          providerText(
+            'ChatGPT did not finish the reply in time. Try again.',
+            'ChatGPT heeft niet op tijd geantwoord. Probeer opnieuw.'
+          )
         )
       );
     }, timeout);
@@ -617,7 +636,10 @@ function peek() {
 async function login() {
   if (loginPending) {
     throw new Error(
-      'Er staat al een ChatGPT-login open.'
+      providerText(
+        'A ChatGPT login is already in progress.',
+        'Er staat al een ChatGPT-login open.'
+      )
     );
   }
 
@@ -625,7 +647,10 @@ async function login() {
 
   if (loginPending) {
     throw new Error(
-      'Er staat al een ChatGPT-login open.'
+      providerText(
+        'A ChatGPT login is already in progress.',
+        'Er staat al een ChatGPT-login open.'
+      )
     );
   }
 
@@ -657,9 +682,7 @@ async function login() {
     attempt.id = result.loginId;
 
     if (attempt.cancelled) {
-      throw new Error(
-        'ChatGPT-login is geannuleerd.'
-      );
+      throw loginCancelledError();
     }
 
     if (
@@ -668,7 +691,10 @@ async function login() {
       !result.userCode
     ) {
       throw new Error(
-        'ChatGPT gaf geen inlogcode terug. Controleer of login met een apparaatcode is toegestaan voor je account of workspace.'
+        providerText(
+          'ChatGPT did not return a sign-in code. Check whether device-code login is allowed for your account or workspace.',
+          'ChatGPT gaf geen inlogcode terug. Controleer of login met een apparaatcode is toegestaan voor je account of workspace.'
+        )
       );
     }
 
@@ -682,20 +708,27 @@ async function login() {
       ].includes(url.hostname)
     ) {
       throw new Error(
-        'De login-URL is niet van OpenAI.'
+        providerText(
+          'The sign-in URL is not an OpenAI URL.',
+          'De login-URL is niet van OpenAI.'
+        )
       );
     }
 
     const choice = await dialog.showMessageBox({
       type: 'info',
-      title: 'TwoCode · ChatGPT koppelen',
-      message:
-        `Je eenmalige inlogcode: ${result.userCode}`,
-      detail:
-        'Klik hieronder om de code te kopiëren en de officiële OpenAI-inlogpagina te openen. Log in en plak daar de code. Laat TwoCode open totdat de koppeling klaar is.',
+      title: providerText('TwoCode · Connect ChatGPT', 'TwoCode · ChatGPT koppelen'),
+      message: providerText(
+        `Your one-time sign-in code: ${result.userCode}`,
+        `Je eenmalige inlogcode: ${result.userCode}`
+      ),
+      detail: providerText(
+        'Click below to copy the code and open the official OpenAI sign-in page. Sign in and enter the code there. Keep TwoCode open until the connection is complete.',
+        'Klik hieronder om de code te kopiëren en de officiële OpenAI-inlogpagina te openen. Log in en plak daar de code. Laat TwoCode open totdat de koppeling klaar is.'
+      ),
       buttons: [
-        'Kopieer code en open browser',
-        'Annuleren'
+        providerText('Copy code and open browser', 'Kopieer code en open browser'),
+        providerText('Cancel', 'Annuleren')
       ],
       defaultId: 0,
       cancelId: 1,
@@ -707,9 +740,7 @@ async function login() {
       attempt.cancelled ||
       child == null
     ) {
-      throw new Error(
-        'ChatGPT-login is geannuleerd.'
-      );
+      throw loginCancelledError();
     }
 
     clipboard.writeText(result.userCode);
@@ -722,7 +753,7 @@ async function login() {
       throw new Error(
         safeMessage(
           completed.error ||
-          'ChatGPT-login is afgebroken.'
+          providerText('ChatGPT login was interrupted.', 'ChatGPT-login is afgebroken.')
         )
       );
     }
@@ -735,7 +766,7 @@ async function login() {
     if (!account.ready) {
       throw new Error(
         account.error ||
-        'Het account is nog niet verbonden.'
+        providerText('The account is not connected yet.', 'Het account is nog niet verbonden.')
       );
     }
 
@@ -765,7 +796,7 @@ async function cancelLogin() {
   attempt.cancelled = true;
 
   attempt.waiter?.cancel(
-    new Error('ChatGPT-login is geannuleerd.')
+    loginCancelledError()
   );
 
   if (attempt.id) {

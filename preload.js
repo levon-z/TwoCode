@@ -122,6 +122,8 @@
 
     setIslandInteractive: interactive =>
       ipcRenderer.send('island:set-interactive', interactive),
+    setLanguage: language =>
+      ipcRenderer.send('app:set-language', language),
     setIslandState: state =>
       ipcRenderer.send('island:set-state', state),
     setMode: mode =>

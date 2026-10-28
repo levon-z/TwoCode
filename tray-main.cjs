@@ -3,8 +3,10 @@
 // place where you can always find and close TwoCode. Also: only one TwoCode runs at a time.
 const { app, Tray, Menu, nativeImage, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs');
 
 let tray = null;
+let language = 'en';
 
 function island() {
   return BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && /mascot\.html/.test(w.webContents.getURL()));
@@ -24,18 +26,38 @@ function setStartsWithWindows(on) { try { app.setLoginItemSettings({ ...loginOpt
 
 function quit() { app.quit(); } // main.js shows the goodbye first
 function restart() { app.relaunch(); app.quit(); }
+const languageFile = () => path.join(app.getPath('userData'), 'twocode-language.json');
+function readLanguage() {
+  try { return JSON.parse(fs.readFileSync(languageFile(), 'utf8')).language === 'nl' ? 'nl' : 'en'; }
+  catch { return 'en'; }
+}
+function setLanguage(value) {
+  language = value === 'nl' ? 'nl' : 'en';
+  app.twocodeLanguage = language;
+  try {
+    const file = languageFile();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file + '.tmp', JSON.stringify({ language }), { mode: 0o600 });
+    fs.renameSync(file + '.tmp', file);
+  } catch {}
+  buildMenu();
+}
+const fromIsland = event => /mascot\.html/.test(event.senderFrame?.url || '');
 
 function buildMenu() {
   if (!tray) return;
+  const text = language === 'nl'
+    ? { open: 'Open de island', settings: 'Instellingen', startup: 'Starten met Windows', restart: 'Opnieuw starten', quit: 'TwoCode afsluiten' }
+    : { open: 'Open the island', settings: 'Settings', startup: 'Start with Windows', restart: 'Restart', quit: 'Quit TwoCode' };
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'TwoCode', enabled: false },
     { type: 'separator' },
-    { label: 'Open de island', accelerator: 'Ctrl+Alt+1', registerAccelerator: false, click: openIsland },
-    { label: 'Instellingen', click: () => app.emit('twocode-open-settings') },
-    { label: 'Starten met Windows', type: 'checkbox', checked: startsWithWindows(), click: item => setStartsWithWindows(item.checked) },
+    { label: text.open, accelerator: 'Ctrl+Alt+1', registerAccelerator: false, click: openIsland },
+    { label: text.settings, click: () => app.emit('twocode-open-settings') },
+    { label: text.startup, type: 'checkbox', checked: startsWithWindows(), click: item => setStartsWithWindows(item.checked) },
     { type: 'separator' },
-    { label: 'Opnieuw starten', click: restart },
-    { label: 'TwoCode afsluiten', click: quit }
+    { label: text.restart, click: restart },
+    { label: text.quit, click: quit }
   ]));
 }
 
@@ -46,7 +68,10 @@ if (!app.requestSingleInstanceLock()) {
   // "TwoCode Instellingen" in the Start menu starts TwoCode with --settings: then only that app opens.
   app.on('second-instance', (event, argv) => { if ((argv || []).includes('--settings')) app.emit('twocode-open-settings'); else openIsland(); });
   app.setName('TwoCode');
+  ipcMain.on('app:set-language', (event, value) => { if (fromIsland(event)) setLanguage(value); });
   app.whenReady().then(() => {
+    language = readLanguage();
+    app.twocodeLanguage = language;
     // Windows shows the name and icon of a notification from a Start menu shortcut with the same app id.
     // Without it, notifications said "Electron". Made (or fixed) on every start, it costs nothing.
     if (process.platform === 'win32') {

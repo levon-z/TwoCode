@@ -11,7 +11,7 @@
   };
 
   // ---------- preferences (Settings → Algemeen) ----------
-  const DEFAULTS = { lang: 'nl', speed: 'snel', focusMin: 25, focusSec: 1500,eye: 'mint', body: 'wolk', palette: 'klassiek', faces: true, blink: true,
+  const DEFAULTS = { lang: 'en', speed: 'snel', focusMin: 25, focusSec: 1500,eye: 'mint', body: 'wolk', palette: 'klassiek', faces: true, blink: true,
     dance: true, confetti: true, chimes: true, notify: true, startup: true, outfit: 'auto', sleepMin: 10, warnAt: 80,
     pack: 'klassiek', seasonal: true, hunger: true, volumeHud: true, batteryWarn: true, appAnim: true,
     testMode: false, name: 'TwoCode', lightBusy: '#ff9a1f', lightDone: '#22e05a', lightError: '#ff3b3b' };
@@ -56,6 +56,7 @@
   function apply() {
     const s = SPEEDS[prefs.speed];
     UI.NORMAL_PEEK_DELAY = s.peek; UI.HOME_LEAVE_DELAY = s.home; UI.VIEW_LEAVE_DELAY = s.view; UI.MONITOR_LEAVE_DELAY = s.mon;
+    window.twocode?.setLanguage?.(prefs.lang);
     window.twocode?.aiMonitorSetNotify?.(prefs.notify).catch?.(() => {});
   }
   apply();

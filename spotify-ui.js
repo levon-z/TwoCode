@@ -55,6 +55,12 @@
   };
   // ---- Spotify Connect: where the music plays (this PC, your phone, the car…) and moving it, like Spotify's speaker button ----
   let devicesOpen = false, devices = [], devicesNote = '';
+  const spotify403 = () => tr2('Spotify gaf 403. In Development Mode heeft de app-eigenaar Premium nodig en moet je account in Users and Access staan. Afspelen vereist ook Premium.');
+  const spotifyError = (status, message) => {
+    if (Number(status) === 403) return spotify403();
+    if (/premium/i.test(String(message || ''))) return tr2('Spotify-bediening vereist een Premium-account.');
+    return message || tr2('Dat lukte niet.');
+  };
   function devIcon(type, x, y, s, colour) { // small line icons per kind of device
     ctx.save(); ctx.strokeStyle = colour; ctx.fillStyle = colour; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.beginPath();
     if (type === 'Smartphone') ctx.roundRect(x - s * 0.28, y - s * 0.5, s * 0.56, s, 2.5);
@@ -66,14 +72,14 @@
   }
   async function loadDevices() {
     devicesNote = '…';
-    try { const r = await api.spotifyDevices?.(); devices = r?.devices || []; devicesNote = r?.ok ? (devices.length ? '' : 'Open Spotify op een ander apparaat, dan zie je het hier.') : (r?.error || 'Kon je apparaten niet ophalen.'); }
-    catch { devicesNote = 'Kon je apparaten niet ophalen.'; }
+    try { const r = await api.spotifyDevices?.(); devices = r?.devices || []; devicesNote = r?.ok ? (devices.length ? '' : 'Open Spotify op een ander apparaat, dan zie je het hier.') : spotifyError(r?.status, r?.error || 'Kon je apparaten niet ophalen.'); }
+    catch { devicesNote = tr2('Kon je apparaten niet ophalen.'); }
   }
   async function moveTo(device) {
     devicesNote = 'Wisselen naar ' + device.name + '…';
     const r = await api.spotifyTransfer?.(device.id).catch(e => ({ ok: false, error: e.message }));
     if (r?.ok) { devicesOpen = false; devicesNote = ''; window.__twocodeFlash?.('🔊  ' + device.name, 1200); window.__twocodeChime?.('pop'); setTimeout(() => refreshSpotify(), 700); }
-    else devicesNote = r?.error || 'Dat lukte niet.';
+    else devicesNote = spotifyError(r?.status, r?.error || 'Dat lukte niet.');
   }
 
   // The player: one glass card tinted by the album cover, the cover big on the left,
@@ -105,8 +111,9 @@
     window.__twocodeVisualizer('page', right - 44, top0 + 24, 44, 28, colour, 6);
     const tx = x0 + cs + 12, titleW = right - 56 - tx;
     if (!track) {
-      display(tr2('Er speelt nu niks'), tx, top0 + 26, 15, '#fff', 600, titleW);
-      text('Start muziek in Spotify, of druk op afspelen.', tx, top0 + 44, 12, '#8e8e93', 400, 'left', titleW);
+      const denied = Number(spotifyState.status) === 403;
+      display(tr2(denied ? 'Spotify blokkeert deze app (403)' : 'Er speelt nu niks'), tx, top0 + 26, 15, '#fff', 600, titleW);
+      text(denied ? 'Controleer Spotify Development Mode-toegang in het dashboard.' : 'Start muziek in Spotify, of druk op afspelen.', tx, top0 + 44, 12, '#8e8e93', 400, 'left', titleW);
     } else {
       const over = inside(pointer.x, pointer.y, { x: tx, y: top0 + 10, width: titleW, height: 20 });
       display(track.name, tx, top0 + 26, 15, over ? soft : '#fff', 600, titleW);

@@ -83,4 +83,15 @@ npm start
 
 Codex support uses the optional Codex package: `npm install @openai/codex --include=optional`.
 
+### Spotify in a fork
+
+Spotify OAuth can succeed while Spotify's API rejects playback or device requests with HTTP 403. In Development Mode, the app owner needs Premium and each user must be on the app's allowlist (up to five users). Playback controls also require Premium for the Spotify account being used. See Spotify's [Development Mode requirements](https://developer.spotify.com/documentation/web-api/concepts/quota-modes) and [playback API requirements](https://developer.spotify.com/documentation/web-api/reference/start-a-users-playback).
+
+For a personal fork, create a Spotify Web API app, add `http://127.0.0.1:8888/callback` as a redirect URI, add your account to its allowlist, then start TwoCode with your app's Client ID:
+
+```powershell
+$env:TWOCODE_SPOTIFY_CLIENT_ID = "your-client-id"
+npm start
+```
+
 Website: [twocode.nl](https://twocode.nl) · Contact: info@twocode.nl

@@ -3900,7 +3900,16 @@ async function refreshSpotify() {
         // where it plays (this PC, your phone, the car…)
         device:
           result.device ||
-          null
+          null,
+
+        error:
+          result.error || '',
+
+        status:
+          Number(result.status || 0),
+
+        detail:
+          result.detail || ''
       };
 
 

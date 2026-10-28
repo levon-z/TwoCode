@@ -2418,6 +2418,27 @@ function clampNumber(
 
 const SPOTIFY_CLIENT_ID =
   '4cd26d1c69a14dffa0649606f75a4418';
+function readSpotifyClientIdFromEnvFile() {
+  try {
+    const envFile = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
+    const entry = envFile.match(/^\s*TWOCODE_SPOTIFY_CLIENT_ID\s*=\s*(.*?)\s*$/m);
+    if (!entry) return '';
+
+    return entry[1].replace(/^(?:"(.*)"|'(.*)')$/, (_, doubleQuoted, singleQuoted) =>
+      doubleQuoted ?? singleQuoted
+    ).trim();
+  } catch {
+    return '';
+  }
+}
+
+const configuredSpotifyClientId = String(
+  process.env.TWOCODE_SPOTIFY_CLIENT_ID ||
+  readSpotifyClientIdFromEnvFile()
+).trim();
+const ACTIVE_SPOTIFY_CLIENT_ID = /^[A-Za-z0-9]{20,80}$/.test(configuredSpotifyClientId)
+  ? configuredSpotifyClientId
+  : SPOTIFY_CLIENT_ID;
 
 
 const SPOTIFY_REDIRECT_URI =
@@ -2995,9 +3016,18 @@ function loadSpotifyTokens() {
 
 
   try {
-    return JSON.parse(
+    const tokens = JSON.parse(
       raw
     );
+
+    // A Spotify refresh token belongs to the Client ID that issued it. Treat legacy tokens as
+    // belonging to the bundled app, then ask the user to connect again after switching fork IDs.
+    const tokenClientId = tokens.client_id || SPOTIFY_CLIENT_ID;
+    if (tokenClientId !== ACTIVE_SPOTIFY_CLIENT_ID) {
+      clearSpotifyTokens();
+      return null;
+    }
+    return tokens;
 
   } catch {
     return null;
@@ -3038,7 +3068,7 @@ async function exchangeSpotifyCode(
         body:
           new URLSearchParams({
             client_id:
-              SPOTIFY_CLIENT_ID,
+              ACTIVE_SPOTIFY_CLIENT_ID,
 
             grant_type:
               'authorization_code',
@@ -3073,6 +3103,9 @@ async function exchangeSpotifyCode(
 
 
   const tokens = {
+    client_id:
+      ACTIVE_SPOTIFY_CLIENT_ID,
+
     access_token:
       data.access_token,
 
@@ -3128,7 +3161,7 @@ async function refreshSpotifyToken(
         body:
           new URLSearchParams({
             client_id:
-              SPOTIFY_CLIENT_ID,
+              ACTIVE_SPOTIFY_CLIENT_ID,
 
             grant_type:
               'refresh_token',
@@ -3515,7 +3548,7 @@ async function spotifyConnect() {
             url.search =
               new URLSearchParams({
                 client_id:
-                  SPOTIFY_CLIENT_ID,
+                  ACTIVE_SPOTIFY_CLIENT_ID,
 
                 response_type:
                   'code',
@@ -3674,10 +3707,13 @@ async function spotifyApi(
   if (
     !response.ok
   ) {
-    throw new Error(
-      data?.error?.message ||
-      `Spotify HTTP ${response.status}`
-    );
+    const detail = typeof data === 'string'
+      ? data.slice(0, 240)
+      : String(data?.error?.message || data?.message || '').slice(0, 240);
+    const error = new Error(detail || `Spotify HTTP ${response.status}`);
+    error.spotifyStatus = response.status;
+    error.spotifyDetail = detail;
+    throw error;
   }
 
 
@@ -3805,6 +3841,8 @@ async function getSpotifyState() {
       connected: true,
       active: false,
 
+      status: Number(error.spotifyStatus) || 0,
+      detail: error.spotifyDetail || '',
       error:
         error.message
     };
@@ -3825,7 +3863,7 @@ async function spotifyDevices() {
     const data = await spotifyApi('/v1/me/player/devices');
     return { ok: true, devices: (data?.devices || []).filter(d => d.id && !d.is_restricted).map(spotifyDevice) };
   } catch (error) {
-    return { ok: false, devices: [], error: error.message };
+    return { ok: false, devices: [], status: Number(error.spotifyStatus) || 0, detail: error.spotifyDetail || '', error: error.message };
   }
 }
 async function spotifyTransfer(id) {
@@ -3834,7 +3872,7 @@ async function spotifyTransfer(id) {
     await spotifyApi('/v1/me/player', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_ids: [id], play: true }) });
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: /premium/i.test(error.message) ? 'Wisselen van apparaat kan alleen met Spotify Premium.' : error.message };
+    return { ok: false, status: Number(error.spotifyStatus) || 0, error: /premium/i.test(error.message) ? 'Wisselen van apparaat kan alleen met Spotify Premium.' : error.message };
   }
 }
 

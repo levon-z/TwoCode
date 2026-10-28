@@ -41,6 +41,9 @@
     // music
     'Er speelt nu niks': 'Nothing is playing', 'Start muziek in Spotify, of druk op afspelen.': 'Start music in Spotify, or press play.',
     'Spotify koppelen': 'Connect Spotify', 'Dan zie en bedien je je muziek hier.': 'Then you see and control your music here.', 'Koppel Spotify': 'Connect Spotify',
+    'Spotify blokkeert deze app (403)': 'Spotify blocked this app (403)', 'Controleer Spotify Development Mode-toegang in het dashboard.': 'Check Spotify Development Mode access in the dashboard.',
+    'Spotify gaf 403. In Development Mode heeft de app-eigenaar Premium nodig en moet je account in Users and Access staan. Afspelen vereist ook Premium.': 'Spotify returned 403. Development Mode requires Premium for the app owner and your account to be allowlisted. Playback also requires Premium.',
+    'Spotify-bediening vereist een Premium-account.': 'Spotify playback controls require a Premium account.',
     '⏭  Volgend nummer': '⏭  Next song', '⏮  Vorig nummer': '⏮  Previous song',
     // tray, clipboard, note, focus
     'Laat los, ik vang hem!': "Let go, I'll catch it!", '🧺 Laat los, ik vang hem!': "🧺 Let go, I'll catch it!", 'Het bestand komt in je lade': 'The file goes into your tray',
